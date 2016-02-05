@@ -1,0 +1,6 @@
+# IntelliJ project files
+*.name
+*.xml
+*.class
+*.idea
+*.iml
