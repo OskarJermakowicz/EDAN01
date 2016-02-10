@@ -8,13 +8,13 @@ public class Pizza {
 	public static void main(String[] args) {
 		long startTime = System.currentTimeMillis();
 
-//		System.out.println("\n*** Expected result: 35");
-//		int n = 4;
-//		int[] price = { 10, 5, 20, 15 };
-//		int m = 2;
-//		int[] buy = { 1, 2 };
-//		int[] free = { 1, 1 };
-//		optimalCost(n, price, m, buy, free);
+		System.out.println("\n*** Expected result: 35");
+		int n = 4;
+		int[] price = { 10, 5, 20, 15 };
+		int m = 2;
+		int[] buy = { 1, 2 };
+		int[] free = { 1, 1 };
+		optimalCost(n, price, m, buy, free);
 
 //		System.out.println("\n*** Expected result: 35");
 //		int n = 4;
@@ -24,13 +24,13 @@ public class Pizza {
 //		int[] free = {1,1,2,9,1,0,1};
 //		optimalCost(n, price, m, buy, free);
 
-		System.out.println("\n*** Expected result: 340");
-		int n = 10;
-		int[] price = { 70, 10, 60, 60, 30, 100, 60, 40, 60, 20 };
-		int m = 4;
-		int[] buy = { 1, 2, 1, 1 };
-		int[] free = { 1, 1, 1, 0 };
-		optimalCost(n, price, m, buy, free);
+//		System.out.println("\n*** Expected result: 340");
+//		int n = 10;
+//		int[] price = { 70, 10, 60, 60, 30, 100, 60, 40, 60, 20 };
+//		int m = 4;
+//		int[] buy = { 1, 2, 1, 1 };
+//		int[] free = { 1, 1, 1, 0 };
+//		optimalCost(n, price, m, buy, free);
 
 		long endTime = System.currentTimeMillis();
 		System.out.println("\n*** Execution time: " + (endTime - startTime) + " ms");
@@ -86,7 +86,7 @@ public class Pizza {
 
 		for (int i = 0; i < n; i++) {
             // Constraint: one pizza cannot be used to activate two vouchers, each column must
-            // be 0 or 1 just like in paidPizzas & freePizzas
+            // be 0 or 1 equal to paidPizzas & freePizzas
 			store.impose(new Sum(getColumn(paidPerVoucher, i), paidPizzas[i]));
             store.impose(new Sum(getColumn(freePerVoucher, i), freePizzas[i]));
 
@@ -97,7 +97,7 @@ public class Pizza {
 
         for (int i = 0; i < m; i++) {
 			// Constraint: number of free pizzas cannot be more than what the voucher says
-            IntVar maxFreePizzas = new IntVar(store, "maxFreePizzas", free[i], free[i]);
+            IntVar maxFreePizzas = new IntVar(store, "maxFreePizzas[" + i + "]", free[i], free[i]);
             store.impose(new SumInt(store, freePerVoucher[i], "<=", maxFreePizzas));
 
 			// Constraint: you cannot get free pizzas if you don't pay for the amount of pizzas the voucher says
@@ -105,12 +105,12 @@ public class Pizza {
 			store.impose(new IfThen(new SumInt(store, paidPerVoucher[i], "<", mustBuy), new SumInt(store, freePerVoucher[i], "==", ZERO)));
         }
 
-		// Constraint: free pizzas cannot be more expensive than the cheapest that was bought
-        for(int i = 0; i < m; i++){
-            for(int j = 0; j < n; j++){
+		// Constraint: free pizzas cannot be more expensive than the cheapest that was bought, works because we thereafter sort the cost array descending
+        for(int i = 0; i < m; i++) {
+            for(int j = 0; j < n; j++) {
                 PrimitiveConstraint notBoughtCons = new XeqY(paidPerVoucher[i][j], ZERO);
                 PrimitiveConstraint boughtCons = new XeqY(paidPerVoucher[i][j], ONE);
-                for(int k = j - 1; k >= 0; k--){
+				for(int k = 0; k < j + 1; k++) {
                     PrimitiveConstraint notFreeCons = new XeqY(freePerVoucher[i][k], ZERO);
                     PrimitiveConstraint freeCons = new XeqY(freePerVoucher[i][k], ONE);
 
@@ -121,10 +121,10 @@ public class Pizza {
         }
 
 		// Minimize the solution based on cost
-		IntVar cost = new IntVar(store, "Cost ", 0, sumArray(price));
+		IntVar cost = new IntVar(store, "cost", 0, sumArray(price));
 		Arrays.sort(price);
 		price = reverseArray(price);
-		store.impose(new SumWeight(paidPizzas, price, cost));
+		store.impose(new SumWeight(paidPizzas, price, cost)); // LinearInt?
 
 		/**
 		 * Search & print solution
