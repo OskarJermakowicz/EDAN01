@@ -105,6 +105,12 @@ public class Pizza {
 			store.impose(new IfThen(new SumInt(store, paidPerVoucher[i], "<", mustBuy), new SumInt(store, freePerVoucher[i], "==", ZERO)));
         }
 
+		// Constraint: Make the search minimize the result based on cost. LinearInt?
+		IntVar cost = new IntVar(store, "cost", 0, sumArray(price));
+		Arrays.sort(price);
+		price = reverseArray(price);
+		store.impose(new SumWeight(paidPizzas, price, cost));
+
 		// Constraint: free pizzas cannot be more expensive than the cheapest that was bought, works because we thereafter sort the cost array descending
         for(int i = 0; i < m; i++) {
             for(int j = 0; j < n; j++) {
@@ -119,12 +125,6 @@ public class Pizza {
                 }
             }
         }
-
-		// Minimize the solution based on cost
-		IntVar cost = new IntVar(store, "cost", 0, sumArray(price));
-		Arrays.sort(price);
-		price = reverseArray(price);
-		store.impose(new SumWeight(paidPizzas, price, cost)); // LinearInt?
 
 		/**
 		 * Search & print solution
