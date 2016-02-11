@@ -54,30 +54,24 @@ public class Logistics {
 		Store store = new Store();
 
 		IntVar[][] paths = new IntVar[n_dests][graph_size];
-		int[][] distances = new int[graph_size][graph_size];
 
 		final IntVar ZERO = new IntVar(store, "ZERO", 0, 0);
 		final IntVar ONE = new IntVar(store, "ONE", 1, 1);
 
 		/**
-		 * Populate all matrices
+		 * Populate the matrix
 		 */
 		for (int i = 0; i < n_dests; i++) {
+			int fromNode = 1;
 			for (int j = 0; j < graph_size; j++) {
-				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]", 0, graph_size);
-			}
-		}
-
-		for (int i = 0; i < graph_size; i++) {
-			for (int j = 0; j < graph_size; j++) {
-				for (int k = 0; k < cost.length; k++) {
-					if ((i + 1 == from[k] && j + 1 == to[k]) || (i + 1 == to[k] && j + 1 == from[k])) {
-						distances[i][j] = cost[k];
-					} else {
-						distances[i][j] = 0;
+				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]");
+				for (int k = 0; k < from.length; k++) {
+					if (from[k] == fromNode) {
+						System.out.println(from[k] + " och " + to[k]);
+						paths[i][j].addDom(to[k], to[k]);
 					}
-
 				}
+				fromNode++;
 			}
 		}
 
@@ -91,7 +85,7 @@ public class Logistics {
 
 		// Constraint: minimize by considering which paths were taken and what their cost was
 		IntVar distance = new IntVar(store, "cost", 0, sumArray(cost));
-		store.impose(new SumWeight(toIntVarArray(paths), toIntArray(distances), distance));
+		store.impose(new SumWeight(toIntVarArray(paths), cost, distance));
 
 		/**
 		 * Search & print solution
