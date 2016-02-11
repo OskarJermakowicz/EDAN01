@@ -67,7 +67,6 @@ public class Logistics {
 				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]");
 				for (int k = 0; k < from.length; k++) {
 					if (from[k] == fromNode) {
-						System.out.println(from[k] + " och " + to[k]);
 						paths[i][j].addDom(to[k], to[k]);
 					}
 				}
@@ -83,8 +82,16 @@ public class Logistics {
 			store.impose(new Subcircuit(paths[i]));
 		}
 
+		// Constraint: element
+		for (int i = 0; i < n_dests; i++) {
+			IntVar costIntVar = new IntVar(store, "costIntVar[" + i + "]", cost[i], cost[i]);
+			IntVar iIntVar = new IntVar(store, "iIntVar[" + i + "]", i, i);
+			store.impose(new Element(iIntVar, paths[i], costIntVar));
+		}
+
 		// Constraint: minimize by considering which paths were taken and what their cost was
 		IntVar distance = new IntVar(store, "cost", 0, sumArray(cost));
+		// Lengths av paths som IntVarArray är inte samma som cost. Få de till samma / fixa samband.
 		store.impose(new SumWeight(toIntVarArray(paths), cost, distance));
 
 		/**
@@ -143,5 +150,20 @@ public class Logistics {
 			}
 		}
 		return array;
+	}
+
+	/**
+	 * Merges two int arrays into one.
+	 */
+	private static int[] mergeIntArrays(int[] a, int[] b) {
+		int[] result = new int[a.length + b.length];
+		for (int i = 0; i < (a.length + b.length); i++) {
+			if (i < a.length) {
+				result[i] = a[i];
+			} else {
+				result[i] = b[i - a.length];
+			}
+		}
+		return result;
 	}
 }
