@@ -102,7 +102,7 @@ public class Pizza {
             store.impose(new IfThen(new SumInt(store, paidPerVoucher[i], "<", mustBuy), new SumInt(store, freePerVoucher[i], "==", ZERO)));
         }
 
-        // Constraint: Make the search minimize the result based on cost. LinearInt?
+        // Constraint: Make the search minimize the result based on cost.
         IntVar cost = new IntVar(store, "cost", 0, sumArray(price));
         Arrays.sort(price);
         price = reverseArray(price);
@@ -186,24 +186,6 @@ public class Pizza {
             array[array.length - i - 1] = swap;
         }
         return array;
-    }
-
-    /**
-     * Adds the rows of matrix2 to the end of matrix1
-     */
-    private static IntVar[][] addRows(IntVar[][] matrix1, IntVar[][] matrix2) {
-        IntVar[][] matrix = new IntVar[matrix1.length * 2][matrix1[0].length];
-        for (int i = 0; i < matrix1.length; i++) {
-            for (int j = 0; j < matrix1[0].length; j++) {
-                matrix[i][j] = matrix1[i][j];
-            }
-        }
-        for (int i = 0; i < matrix2.length; i++) {
-            for (int j = 0; j < matrix2[0].length; j++) {
-                matrix[matrix1.length + i][j] = matrix2[i][j];
-            }
-        }
-        return matrix;
     }
 
     /**
