@@ -54,9 +54,11 @@ public class Logistics {
 		Store store = new Store();
 
 		IntVar[][] paths = new IntVar[n_dests][graph_size];
+		IntVar[][] costs = new IntVar[n_dests][graph_size];
 
 		final IntVar ZERO = new IntVar(store, "ZERO", 0, 0);
 		final IntVar ONE = new IntVar(store, "ONE", 1, 1);
+		final IntVar START = new IntVar(store, "START", start, start);
 
 		/**
 		 * Populate the matrix
@@ -65,11 +67,29 @@ public class Logistics {
 			int fromNode = 1;
 			for (int j = 0; j < graph_size; j++) {
 				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]");
+				costs[i][j] = new IntVar(store, "costs[" + i + "," + j + "]");
 				for (int k = 0; k < from.length; k++) {
 					if (from[k] == fromNode) {
 						paths[i][j].addDom(to[k], to[k]);
+						costs[i][j].addDom(cost[k], cost[k]);
+
+						// Constraint: you need to 'pay' the corresponding distance for each path
+						IntVar pathVar = new IntVar(store, "pathVar[" + i + "," + j + "," + k + "]", to[k], to[k]);
+						IntVar costVar = new IntVar(store, "costVar[" + i + "," + j + "," + k + "]", cost[k], cost[k]);
+
+						PrimitiveConstraint c1 = new XeqY(paths[i][j], pathVar);
+						PrimitiveConstraint c2 = new XeqY(costs[i][j], costVar);
+						store.impose(new IfThen(c1, c2));
 					}
 				}
+				// You can go back to start from every destination
+				paths[i][j].addDom(start, start);
+				costs[i][j].addDom(0, 0);
+
+				PrimitiveConstraint c1 = new XeqY(paths[i][j], START);
+				PrimitiveConstraint c2 = new XeqY(costs[i][j], ZERO);
+				store.impose(new IfThen(c1, c2));
+
 				fromNode++;
 			}
 		}
@@ -89,10 +109,22 @@ public class Logistics {
 			store.impose(new Element(iIntVar, paths[i], costIntVar));
 		}
 
+		// Constraint: you can only travel for free if you go back to the start node
+		for (int i = 0; i < n_dests; i++) {
+			for (int j = 0; j < graph_size; j++) {
+				PrimitiveConstraint c1 = new XneqY(paths[i][j], START);
+				PrimitiveConstraint c2 = new XneqY(costs[i][j], ZERO);
+				store.impose(new IfThen(c1, c2));
+			}
+		}
+
 		// Constraint: minimize by considering which paths were taken and what their cost was
-		IntVar distance = new IntVar(store, "cost", 0, sumArray(cost));
-		// Lengths av paths som IntVarArray är inte samma som cost. Få de till samma / fixa samband.
-		store.impose(new SumWeight(toIntVarArray(paths), cost, distance));
+		IntVar maxDistance = new IntVar(store, "cost", 0, sumArray(cost));
+
+		for (int i = 0; i < n_dests; i++) {
+			store.impose(new SumInt(store, costs[i], "==", maxDistance));
+		}
+
 
 		/**
 		 * Search & print solution
@@ -103,7 +135,9 @@ public class Logistics {
 		Search<IntVar> search = new DepthFirstSearch<>();
 		SelectChoicePoint<IntVar> select = new SimpleMatrixSelect<>(paths, null, new IndomainMin<>());
 
-		if (search.labeling(store, select, distance)) {
+		System.out.println(store);
+
+		if (search.labeling(store, select, maxDistance)) {
 			System.out.println("\n*** Found solution.");
 			// Print path
 		} else {
