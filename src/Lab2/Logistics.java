@@ -54,11 +54,16 @@ public class Logistics {
 		 * Initialize variables
 		 */
 		Store store = new Store();
+
+		// graph_size is increased by one so that the nodes have the same value as their index in the distances
+		// representation matrix.
+		// The first value of each row (and each sub-circuit) in the paths matrix will not be used. This means that the
+		// nodes will have value+1 in paths matrix.
 		graph_size++;
 
 		// Possible paths
 		IntVar[][] paths = new IntVar[n_dests][graph_size];
-		// Representation of the graph for easier understanding
+		// Representation of the graph for easier understanding.
 		int[][] distances = new int[graph_size][graph_size];
 
 		final IntVar ZERO = new IntVar(store, "ZERO", 0, 0);
@@ -74,8 +79,8 @@ public class Logistics {
 			}
 		}
 
-		// Fill matrix with possible paths (with the cost of travel), 0 to not move at a node or move to start, -1 if
-		// path is not possible to take.
+		// Fill matrix with possible paths (with the cost of travel as weights), 0 to not move at a node or move to
+		// start, -1 if path is not possible to take.
 		for (int i = 0; i < graph_size; i++) {
 			Arrays.fill(distances[i], -1);
 			for (int j = 0; j < graph_size; j++) {
@@ -121,6 +126,14 @@ public class Logistics {
 		} else {
 			System.out.println("\n*** No solution found.");
 		}
+
+		/**
+		 * Additional printouts
+		 */
+		System.out.println("\n*** Distances matrix:");
+		printIntMatrix(distances);
+		System.out.println("\n*** Paths taken matrix:");
+		printIntVarMatrix(paths);
 	}
 
 	/**
@@ -160,5 +173,29 @@ public class Logistics {
 			}
 		}
 		return array;
+	}
+
+	/**
+	 * Prints a matrix containing ints
+     */
+	private static void printIntMatrix(int[][] matrix) {
+		for (int i = 0; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[0].length; j++) {
+				System.out.print(matrix[i][j] + "\t");
+			}
+			System.out.println("");
+		}
+	}
+
+	/**
+	 * Prints a matrix containing IntVars
+	 */
+	private static void printIntVarMatrix(IntVar[][] matrix) {
+		for (int i = 0; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[0].length; j++) {
+				System.out.print(matrix[i][j].value() - 1 + "\t");
+			}
+			System.out.println("");
+		}
 	}
 }
