@@ -4,7 +4,6 @@ import org.jacop.core.Store;
 import org.jacop.core.IntVar;
 import org.jacop.constraints.*;
 import org.jacop.search.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Logistics {
@@ -67,15 +66,13 @@ public class Logistics {
 		int[][] distances = new int[graph_size][graph_size];
 
 		final IntVar ZERO = new IntVar(store, "ZERO", 0, 0);
-		final IntVar ONE = new IntVar(store, "ONE", 1, 1);
-		final IntVar START = new IntVar(store, "START", start, start);
 
 		/**
 		 * Populate the matrices
 		 */
 		for (int i = 0; i < n_dests; i++) {
 			for (int j = 0; j < graph_size; j++) {
-				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]", 0, graph_size);
+				paths[i][j] = new IntVar(store, "paths[" + i + "," + j + "]", 1, graph_size);
 			}
 		}
 
@@ -83,10 +80,16 @@ public class Logistics {
 		// start, -1 if path is not possible to take.
 		for (int i = 0; i < graph_size; i++) {
 			Arrays.fill(distances[i], -1);
+		}
+
+		for (int i = 0; i < graph_size; i++) {
 			for (int j = 0; j < graph_size; j++) {
 				if (i == j) {
 					distances[i][j] = 0;
 				}
+			}
+			if (n_dests > i) {
+				distances[dest[i]][start] = 0;
 			}
 		}
 
@@ -95,19 +98,47 @@ public class Logistics {
 			distances[to[i]][from[i]] = cost[i];
 		}
 
-		for (int i = 0; i < n_dests; i++) {
-			distances[dest[i]][start] = 0;
-		}
-
 		/**
 		 * Add constraints
 		 */
-		// Constraint: make each row a sub-circuit (there must be a path to each destination)
-		// Constraint: the sub-circuit has to start in start and end in dest
+		for (int i = 0; i < n_dests; i++) {
+			// Constraint: make each row a sub-circuit (there must be a path to each destination)
+			store.impose(new Subcircuit(paths[i]));
 
-		// Constraint: Make the search minimize the result based on cost.
-		IntVar maxDistance = new IntVar(store, "cost", 0, sumArray(cost));
-		store.impose(new SumInt(store, distance, "==", maxDistance));
+			// Constraint: the sub-circuit has to start in start and end in dest
+			IntVar startVar = new IntVar(store, "startVar[" + i + "]", start + 1, start + 1);
+			IntVar destVar = new IntVar(store, "destVar[" + i + "]", dest[i] + 1, dest[i] + 1);
+			store.impose(new XneqY(paths[i][start], startVar));
+			store.impose(new XneqY(paths[i][dest[i]], destVar));
+		}
+
+		IntVar[][] travelCosts = new IntVar[n_dests][graph_size];
+		for (int i = 0; i < n_dests; i++) {
+			for (int j = 0; j < graph_size; j++) {
+				// Constraint: define the cost to travel from a certain node in the sub-circuit
+				IntVar maxDistance = new IntVar(store, "maxDistance[" + i + "," + j + "]", 0, maxValueOfArray(cost));
+				store.impose(new Element(paths[i][j], distances[j], maxDistance));
+
+				// Constraint: if you traveled a path before, it is now free of cost
+				travelCosts[i][j] = new IntVar(store, "travelCosts[" + i + "," + j + "]", 0, maxValueOfArray(cost));
+				if ((i + 1) < n_dests) {
+					store.impose(new IfThenElse(new XeqY(paths[i][j], paths[i+1][j]), new XeqY(travelCosts[i][j], ZERO), new XeqY(travelCosts[i][j], maxDistance)));
+				} else {
+					store.impose(new XeqY(travelCosts[i][j], maxDistance));
+				}
+			}
+		}
+
+		// Constraint: combine the rows of travelCosts into one (add their costs)
+		IntVar[] costSum = new IntVar[graph_size];
+		for (int i = 0; i < graph_size; i++) {
+			costSum[i] = new IntVar(store, "costSum[" + i + "]", 0, sumArray(cost));
+			store.impose(new SumInt(store, getColumn(travelCosts, i), "==", costSum[i]));
+		}
+
+		// Constraint: final weight of path
+		IntVar totalDistance = new IntVar(store, "totalCost", 0, sumArray(cost));
+		store.impose(new SumInt(store, costSum, "==", totalDistance));
 
 		/**
 		 * Search & print solution
@@ -116,13 +147,13 @@ public class Logistics {
 				"\nNumber of constraints: " + store.numberConstraints());
 
 		Search<IntVar> search = new DepthFirstSearch<>();
-		SelectChoicePoint<IntVar> select = new SimpleSelect<>(toIntVarArray(paths), null, new IndomainMin<>());
+		SelectChoicePoint<IntVar> select = new SimpleMatrixSelect<>(paths, null, new IndomainMin<>());
 
-		//System.out.println(store);
+		System.out.println(store);
 
-		if (search.labeling(store, select, maxDistance)) {
+		if (search.labeling(store, select, totalDistance)) {
 			System.out.println("\n*** Found solution.");
-			System.out.println("Solution cost is: " + maxDistance.value());
+			System.out.println("Solution cost is: " + totalDistance.value());
 		} else {
 			System.out.println("\n*** No solution found.");
 		}
@@ -133,7 +164,7 @@ public class Logistics {
 		System.out.println("\n*** Distances matrix:");
 		printIntMatrix(distances);
 		System.out.println("\n*** Paths taken matrix:");
-		printIntVarMatrix(paths);
+		printIntVarMatrix(paths, dest);
 	}
 
 	/**
@@ -161,18 +192,14 @@ public class Logistics {
 	}
 
 	/**
-	 * Takes all values from a matrix and inserts into an array
+	 * Gets an IntVar array of the column at an index in a matrix.
 	 */
-	private static IntVar[] toIntVarArray(IntVar[][] matrix) {
-		IntVar[] array = new IntVar[matrix.length * matrix[0].length];
-		int index = 0;
+	private static IntVar[] getColumn(IntVar[][] matrix, int index) {
+		IntVar[] column = new IntVar[matrix.length];
 		for (int i = 0; i < matrix.length; i++) {
-			for (int j = 0; j < matrix[0].length; j++) {
-				array[index] = matrix[i][j];
-				index++;
-			}
+			column[i] = matrix[i][index];
 		}
-		return array;
+		return column;
 	}
 
 	/**
@@ -190,10 +217,15 @@ public class Logistics {
 	/**
 	 * Prints a matrix containing IntVars
 	 */
-	private static void printIntVarMatrix(IntVar[][] matrix) {
+	private static void printIntVarMatrix(IntVar[][] matrix, int[] dest) {
 		for (int i = 0; i < matrix.length; i++) {
-			for (int j = 0; j < matrix[0].length; j++) {
-				System.out.print(matrix[i][j].value() - 1 + "\t");
+			System.out.print("To reach " + dest[i] + ":\t");
+			for (int j = 1; j < matrix[0].length; j++) {
+				if ((matrix[i][j].value() - 1) == j) {
+					System.out.print(0 + "\t");
+				} else {
+					System.out.print(matrix[i][j].value() - 1 + "\t");
+				}
 			}
 			System.out.println("");
 		}
