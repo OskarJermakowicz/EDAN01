@@ -216,13 +216,14 @@ public class SimpleSplitDFS1 {
         }
 
         /**
-         * example variable selection; input order
+         * Variable selection: input order / smallest domain order
          */
         IntVar selectVariable(IntVar[] v) {
             if (v.length != 0) {
 
                 // Variable selection: input order
                 if (variableSelection == 0) {
+                    // Check if first variable has already been determined
                     if (v[0].max() == v[0].min()) {
                         searchVariables = new IntVar[v.length - 1];
                         for (int i = 0; i < v.length - 1; i++) {
@@ -234,25 +235,35 @@ public class SimpleSplitDFS1 {
                             searchVariables[i] = v[i];
                         }
                     }
-
                     return v[0];
                 }
 
                 // Variable selection: smallest domain
                 if (variableSelection == 1) {
                     IntVar smallest = v[0];
+                    int index = 0;
 
-                    searchVariables = new IntVar[v.length - 1];
-                    int j = 0;
-                    for (int i = 0; i < v.length; i++) {
-
-                        if (v[i].domain.getSize() < smallest.domain.getSize()) {
-                            searchVariables[j] = smallest;
+                    for(int i = 0; i < v.length; i++) {
+                        if(v[i].domain.getSize() < smallest.domain.getSize()) {
                             smallest = v[i];
-                        } else if (j < v.length){
-                            searchVariables[j] = v[i];
+                            index = i;
                         }
-                        j++;
+                    }
+                    // Check if smallest variable has already been determined
+                    if(smallest.max() == smallest.min()){
+                        searchVariables = new IntVar[v.length - 1];
+                        for(int i = 0; i < v.length - 1; i++){
+                            if (i >= index) {
+                                searchVariables[i] = v[i + 1];
+                            } else {
+                                searchVariables[i] = v[i];
+                            }
+                        }
+                    } else {
+                        searchVariables = new IntVar[v.length];
+                        for (int i = 0; i < v.length; i++) {
+                            searchVariables[i] = v[i];
+                        }
                     }
                     return smallest;
                 }
@@ -266,14 +277,14 @@ public class SimpleSplitDFS1 {
         }
 
         /**
-         * example value selection; indomain_min
+         * Value selection: (max + min) / 2
          */
         int selectValue(IntVar v) {
             return (v.max() + v.min()) / 2;
         }
 
         /**
-         * example constraint assigning a selected value
+         * Constraint: variable <= value
          */
         public PrimitiveConstraint getConstraint() {
             return new XlteqC(var, value);

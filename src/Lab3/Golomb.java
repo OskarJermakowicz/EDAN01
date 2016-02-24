@@ -165,8 +165,8 @@ public class Golomb {
         int variableSelection = 1;
 
         //SimpleDFS search = new SimpleDFS(store);
-        SimpleSplitDFS1 search = new SimpleSplitDFS1(store, variableSelection);
-        //SimpleSplitDFS2 search = new SimpleSplitDFS2(store, variableSelection);
+        //SimpleSplitDFS1 search = new SimpleSplitDFS1(store, variableSelection);
+        SimpleSplitDFS2 search = new SimpleSplitDFS2(store, variableSelection);
 
         search.setVariablesToReport(numbers);
         search.setCostVariable(cost);
@@ -177,6 +177,4 @@ public class Golomb {
         System.out.println("Number of total nodes: " + search.totalNodes);
         System.out.println("Number of wrong decisions: " + search.wrongDecisions);
     }
-
-
 }

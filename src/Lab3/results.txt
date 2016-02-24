@@ -1,6 +1,10 @@
+INPUT ORDER:
 Type of search          Total # nodes       Wrong decisions
-SimpleDFS               32033               32023
-SplitSearch 1           -                   -
-SplitSearch 2           -                   -
+SimpleDFS               32,033              32,023
+SplitSearch 1           41,805              41,795
+SplitSearch 2           700,992             700,960
 
-Variable selection method:?
+SMALLEST DOMAIN ORDER:
+Type of search          Total # nodes       Wrong decisions
+SplitSearch 1           56,937              56,936
+SplitSearch 2           1,528,474           1,528,430
