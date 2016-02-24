@@ -30,9 +30,7 @@ package Lab3;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import org.jacop.constraints.Not;
-import org.jacop.constraints.PrimitiveConstraint;
-import org.jacop.constraints.XeqC;
+import org.jacop.constraints.*;
 import org.jacop.core.FailException;
 import org.jacop.core.IntDomain;
 import org.jacop.core.IntVar;
@@ -45,7 +43,7 @@ import org.jacop.core.Store;
  * @version 4.1
  */
 
-public class SimpleDFS {
+public class SimpleSplitDFS1 {
 
     boolean trace = true;
 
@@ -54,6 +52,11 @@ public class SimpleDFS {
      */
     public int totalNodes = 0;
     public int wrongDecisions = 0;
+
+    /**
+     * Determines which variable selection method to use.
+     */
+    public int variableSelection = -1;
 
     /**
      * Store used in search
@@ -80,8 +83,9 @@ public class SimpleDFS {
      */
     public IntVar costVariable = null;
 
-    public SimpleDFS(Store s) {
+    public SimpleSplitDFS1(Store s, int vs) {
         store = s;
+        variableSelection = vs;
     }
 
     /**
@@ -110,7 +114,6 @@ public class SimpleDFS {
                 return false;
             }
         }
-
 
         consistent = store.consistency();
         totalNodes++;
@@ -199,7 +202,6 @@ public class SimpleDFS {
     }
 
     public class ChoicePoint {
-
         IntVar var;
         IntVar[] searchVariables;
         int value;
@@ -219,13 +221,44 @@ public class SimpleDFS {
         IntVar selectVariable(IntVar[] v) {
             if (v.length != 0) {
 
-                searchVariables = new IntVar[v.length - 1];
-                for (int i = 0; i < v.length - 1; i++) {
-                    searchVariables[i] = v[i + 1];
+                // Variable selection: input order
+                if (variableSelection == 0) {
+                    if (v[0].max() == v[0].min()) {
+                        searchVariables = new IntVar[v.length - 1];
+                        for (int i = 0; i < v.length - 1; i++) {
+                            searchVariables[i] = v[i + 1];
+                        }
+                    } else {
+                        searchVariables = new IntVar[v.length];
+                        for (int i = 0; i < v.length; i++) {
+                            searchVariables[i] = v[i];
+                        }
+                    }
+
+                    return v[0];
                 }
 
-                return v[0];
+                // Variable selection: smallest domain
+                if (variableSelection == 1) {
+                    IntVar smallest = v[0];
 
+                    searchVariables = new IntVar[v.length - 1];
+                    int j = 0;
+                    for (int i = 0; i < v.length; i++) {
+
+                        if (v[i].domain.getSize() < smallest.domain.getSize()) {
+                            searchVariables[j] = smallest;
+                            smallest = v[i];
+                        } else if (j < v.length){
+                            searchVariables[j] = v[i];
+                        }
+                        j++;
+                    }
+                    return smallest;
+                }
+
+                // Default, shouldn't happen
+                return null;
             } else {
                 System.err.println("Zero length list of variables for labeling");
                 return new IntVar(store);
@@ -236,14 +269,14 @@ public class SimpleDFS {
          * example value selection; indomain_min
          */
         int selectValue(IntVar v) {
-            return v.min();
+            return (v.max() + v.min()) / 2;
         }
 
         /**
          * example constraint assigning a selected value
          */
         public PrimitiveConstraint getConstraint() {
-            return new XeqC(var, value);
+            return new XlteqC(var, value);
         }
     }
 }

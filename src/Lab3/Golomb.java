@@ -1,59 +1,49 @@
+package Lab3;
+
 /**
- *  Golomb.java 
- *  This file is part of JaCoP.
- *
- *  JaCoP is a Java Constraint Programming solver. 
- *	
- *	Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *  
- *  Notwithstanding any other provision of this License, the copyright
- *  owners of this work supplement the terms of this License with terms
- *  prohibiting misrepresentation of the origin of this work and requiring
- *  that modified versions of this work be marked in reasonable ways as
- *  different from the original version. This supplement of the license
- *  terms is in accordance with Section 7 of GNU Affero General Public
- *  License version 3.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * Golomb.java
+ * This file is part of JaCoP.
+ * <p>
+ * JaCoP is a Java Constraint Programming solver.
+ * <p>
+ * Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * <p>
+ * Notwithstanding any other provision of this License, the copyright
+ * owners of this work supplement the terms of this License with terms
+ * prohibiting misrepresentation of the origin of this work and requiring
+ * that modified versions of this work be marked in reasonable ways as
+ * different from the original version. This supplement of the license
+ * terms is in accordance with Section 7 of GNU Affero General Public
+ * License version 3.
+ * <p>
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
-import java.util.ArrayList;
-
-import org.jacop.constraints.Alldiff;
-import org.jacop.constraints.XeqC;
-import org.jacop.constraints.XltY;
-import org.jacop.constraints.XlteqC;
-import org.jacop.constraints.XplusClteqZ;
-import org.jacop.constraints.XplusYeqZ;
+import org.jacop.constraints.*;
 import org.jacop.core.IntVar;
 import org.jacop.core.Store;
-import org.jacop.search.DepthFirstSearch;
-import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
-import org.jacop.search.PrintOutListener;
-import org.jacop.search.Search;
-import org.jacop.search.SelectChoicePoint;
+
+import java.util.ArrayList;
 
 /**
- * 
+ *
  * It models a Golomb ruler problem.
- * 
+ *
  * @author Radoslaw Szymanek and Krzysztof Kuchcinski
  *
- * 
+ *
  * Golomb ruler is a special sequence of natural numbers
  * an example is 0 1 4 6
  *
@@ -71,7 +61,7 @@ public class Golomb {
     Store store;
 
     /**
-     * It specifies the number of marks (number of natural numbers in 
+     * It specifies the number of marks (number of natural numbers in
      * the sequence).
      */
     public int noMarks = 10;
@@ -81,103 +71,112 @@ public class Golomb {
      */
     public int bound = -1;
 
-	
+
     /**
      * It contains all differences between all possible pairs of marks.
      */
     public ArrayList<IntVar> subs = new ArrayList<IntVar>();
-	
+
     /**
-     * It executes the program which computes the optimal Golomb ruler. 
-     * 
+     * It executes the program which computes the optimal Golomb ruler.
+     *
      * @param args the first argument specifies the number of marks, the second argument specifies the upper bound of the optimal solution.
      */
     public static void main(String args[]) {
-		
-	Golomb example = new Golomb();
-		
-	example.model();
 
-    }			
+        Golomb example = new Golomb();
+
+        example.model();
+
+    }
 
     public void model() {
 
-	System.out.println("Program to solve Golomb mark problem - length "
-			   + noMarks);
+        System.out.println("Program to solve Golomb mark problem - length "
+                + noMarks);
 
-	store = new Store();
-	ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		
-	IntVar numbers[] = new IntVar[noMarks];
+        store = new Store();
+        ArrayList<IntVar> vars = new ArrayList<IntVar>();
 
-	for (int i = 0; i < numbers.length; i++) {
-	    // Create FDV for each natural number
-	    numbers[i] = new IntVar(store, "n" + new Integer(i), (i + 1) * i / 2,
-				    noMarks * noMarks);
+        IntVar numbers[] = new IntVar[noMarks];
 
-	    // Impose constraints that each consequtive number
-	    // is larger than the previous one
-	    // Golomb ruler is an ordered sequence of numbers
-	    if (i > 0)
-		store.impose(new XltY(numbers[i - 1], numbers[i]));
-	    else
-		store.impose(new XeqC(numbers[0], 0));
-	}
+        for (int i = 0; i < numbers.length; i++) {
+            // Create FDV for each natural number
+            numbers[i] = new IntVar(store, "n" + new Integer(i), (i + 1) * i / 2,
+                    noMarks * noMarks);
 
-	for (IntVar v : numbers)
-	    vars.add(v);
-		
-	if (bound > -1)
-	    store.impose(new XlteqC(numbers[noMarks - 1], bound));
+            // Impose constraints that each consequtive number
+            // is larger than the previous one
+            // Golomb ruler is an ordered sequence of numbers
+            if (i > 0)
+                store.impose(new XltY(numbers[i - 1], numbers[i]));
+            else
+                store.impose(new XeqC(numbers[0], 0));
+        }
 
-	// ArrayList contains all differences
-	subs = new ArrayList<IntVar>();
+        for (IntVar v : numbers)
+            vars.add(v);
 
-	for (int i = 1; i < numbers.length; i++) {
+        if (bound > -1)
+            store.impose(new XlteqC(numbers[noMarks - 1], bound));
 
-	    // for (int j = i - 1; j >= 0; j--) {
-	    for (int j = 0; j < i; j++) {
-		// Create FDV for a difference between ith and jth number
-		IntVar sub = new IntVar(store, "c" + i + "_" + j, (i - j)
-					* (i - j + 1) / 2, noMarks * noMarks);
+        // ArrayList contains all differences
+        subs = new ArrayList<IntVar>();
 
-		subs.add(sub);
+        for (int i = 1; i < numbers.length; i++) {
 
-		// sub + jth = ith since sub = ith - jth
-		// Add constraint so the above relationship holds
-		//			store.imposePropagators(new XplusYeqZ(sub, numbers[j], numbers[i]));
-		store.impose(new XplusYeqZ(sub, numbers[j], numbers[i]));
+            // for (int j = i - 1; j >= 0; j--) {
+            for (int j = 0; j < i; j++) {
+                // Create FDV for a difference between ith and jth number
+                IntVar sub = new IntVar(store, "c" + i + "_" + j, (i - j)
+                        * (i - j + 1) / 2, noMarks * noMarks);
 
-	    }
-	}
+                subs.add(sub);
 
-	int index = 0;
-	for (int i = 1; i < noMarks; i++)
-	    for (int j = 0; j < i; j++)
-		//				store.imposePropagators(new XplusClteqZ(subs.get(index++), (noMarks - 1 - i + j)
-		//						* (noMarks - i + j) / 2, numbers[noMarks - 1]));
-		store.impose(new XplusClteqZ(subs.get(index++), (noMarks - 1 - i + j)
-					     * (noMarks - i + j) / 2, numbers[noMarks - 1]));
+                // sub + jth = ith since sub = ith - jth
+                // Add constraint so the above relationship holds
+                //			store.imposePropagators(new XplusYeqZ(sub, numbers[j], numbers[i]));
+                store.impose(new XplusYeqZ(sub, numbers[j], numbers[i]));
 
-	// symmetry breaking constraint
-	// important constraint to reduce search space since
-	// interested in proving the optimality
-	store.impose(new XltY(subs.get(0), subs.get(subs.size() - 1)));
+            }
+        }
 
-	// All differences have to have unique values
-	store.impose(new Alldiff(subs), 1);
+        int index = 0;
+        for (int i = 1; i < noMarks; i++)
+            for (int j = 0; j < i; j++)
+                //				store.imposePropagators(new XplusClteqZ(subs.get(index++), (noMarks - 1 - i + j)
+                //						* (noMarks - i + j) / 2, numbers[noMarks - 1]));
+                store.impose(new XplusClteqZ(subs.get(index++), (noMarks - 1 - i + j)
+                        * (noMarks - i + j) / 2, numbers[noMarks - 1]));
 
-	IntVar cost = numbers[numbers.length - 1];
+        // symmetry breaking constraint
+        // important constraint to reduce search space since
+        // interested in proving the optimality
+        store.impose(new XltY(subs.get(0), subs.get(subs.size() - 1)));
 
-	SimpleDFS search = new SimpleDFS(store);
-	search.setVariablesToReport(numbers);
-	search.setCostVariable(cost);
+        // All differences have to have unique values
+        store.impose(new Alldiff(subs), 1);
 
-	boolean result = search.label(numbers);
-	
-	System.out.println (result);
+        IntVar cost = numbers[numbers.length - 1];
 
+        /**
+         * 0 = input order, 1 = smallest domain
+         */
+        int variableSelection = 1;
+
+        //SimpleDFS search = new SimpleDFS(store);
+        SimpleSplitDFS1 search = new SimpleSplitDFS1(store, variableSelection);
+        //SimpleSplitDFS2 search = new SimpleSplitDFS2(store, variableSelection);
+
+        search.setVariablesToReport(numbers);
+        search.setCostVariable(cost);
+
+        boolean result = search.label(numbers);
+
+        System.out.println(result);
+        System.out.println("Number of total nodes: " + search.totalNodes);
+        System.out.println("Number of wrong decisions: " + search.wrongDecisions);
     }
-	
-	
+
+
 }

@@ -1,0 +1,6 @@
+Type of search          Total # nodes       Wrong decisions
+SimpleDFS               32033               32023
+SplitSearch 1           -                   -
+SplitSearch 2           -                   -
+
+Variable selection method:?
