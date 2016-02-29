@@ -1,5 +1,4 @@
 n = 7;
 n_commercial = 20;
 n_residential = 29;
-point_distribution = array1d(0..n,
-[-7, -6, -5, -4, 4, 5, 6, 7]);
+point_distribution = array1d(0..n,[-7, -6, -5, -4, 4, 5, 6, 7]);
