@@ -37,6 +37,7 @@ predicate col_var_seq_sym(array[int,int] of var int: x) =
           lex_lesseq([x[i,j] | j in l1..u1],[x[j,i+1] | j in l1..u1])
     );
 
+% Constraint: impose that rows and columns need to be in a certain order in order to improve search time
 constraint row_var_seq_sym(grid);
 constraint col_var_seq_sym(grid);
 
