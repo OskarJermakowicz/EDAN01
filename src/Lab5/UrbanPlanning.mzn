@@ -1,5 +1,4 @@
 include "globals.mzn";
-include "lex_lesseq.mzn";
 
 % Input data
 int: n;
@@ -15,31 +14,7 @@ array[0..n-1] of var int: colsCost;
 var int: cost;
 
 % Declare symmetries in grid
-% Based on http://people.eng.unimelb.edu.au/pstuckey/minisym/paper.pdf page 6.
-
-% Rows need to be in the same lexicographical order
-predicate row_var_seq_sym(array[int,int] of var int: x) =
-    let { int: l1 = min(index_set_1of2(x)),
-          int: u1 = max(index_set_1of2(x)),
-          int: l2 = min(index_set_2of2(x)),
-          int: u2 = max(index_set_2of2(x)) }
-    in forall (i in l1..u1-1) ( 
-          lex_lesseq([x[i,j] | j in l2..u2],[x[i+1,j] | j in l2..u2])
-    );
-
-% Columns need to be in the same lexicographical order
-predicate col_var_seq_sym(array[int,int] of var int: x) =
-    let { int: l1 = min(index_set_1of2(x)),
-          int: u1 = max(index_set_1of2(x)),
-          int: l2 = min(index_set_2of2(x)),
-          int: u2 = max(index_set_2of2(x)) } 
-    in forall (i in l2..u2-1) (
-          lex_lesseq([x[i,j] | j in l1..u1],[x[j,i+1] | j in l1..u1])
-    );
-
-% Constraint: impose that rows and columns need to be in a certain order in order to improve search time
-constraint row_var_seq_sym(grid);
-constraint col_var_seq_sym(grid);
+constraint lex2(grid);
 
 % Constraint: n_residential must be equal to the sum of 1s in grid
 constraint 
@@ -49,16 +24,14 @@ constraint
 
 % Constraint: calculate the points for the rows in grid
 constraint forall (i in 0..n-1) (
-    let { var int: rowSum = sum(row(grid, i)) }
-    in rowsCost[i] = point_distribution[rowSum]
+    rowsCost[i] = point_distribution[sum(row(grid, i))]
 );
 
 % Constraint: calculate the points for the columns in grid
 constraint forall (i in 0..n-1) (
-    let { var int: colSum = sum(col(grid, i)) }
-    in colsCost[i] = point_distribution[colSum]
+    colsCost[i] = point_distribution[sum(col(grid, i))]
 );
 
 % Solve
 constraint cost = sum(rowsCost) + sum(colsCost);
-solve maximize(cost);
+solve :: int_search([grid[i,j] | i, j in 0..n-1], occurrence, indomain_max, complete) maximize(cost);
