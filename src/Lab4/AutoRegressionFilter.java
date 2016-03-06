@@ -9,32 +9,71 @@ public class AutoRegressionFilter {
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
 
-        solve(new ar_1_1());
-        //solve(new ar_1_2());
-        //solve(new ar_1_3());
-        //solve(new ar_2_2());
-        //solve(new ar_2_3());
-        //solve(new ar_2_4());
+        int del_add = 1;
+        int del_mul = 2;
+
+        // Configurations: 1-1, 1-2, 1-3, 2-2, 2-3, 2-4
+        int number_add = 1;
+        int number_mul = 1;
+        int n = 28;
+
+        int[] last = {13,14,27,28};
+        int[] add = {9,10,11,12,13,14,19,20,25,26,27,28};
+        int[] mul = {1,2,3,4,5,6,7,8,15,16,17,18,21,22,23,24};
+
+        // For example index 9 of dependencies indicates that mul index 0 and 1 must be executed before 9 in add.
+        int[][] dependencies = {
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {0, 1},
+                {2, 3},
+                {4, 5},
+                {6, 7},
+                {9},
+                {10},
+                {12},
+                {13},
+                {12},
+                {13},
+                {14, 15},
+                {16, 17},
+                {18},
+                {19},
+                {18},
+                {19},
+                {20, 21},
+                {22, 23},
+                {24, 8},
+                {11, 25}
+        };
+
+        solve(del_add, del_mul, number_add, number_mul, n, last, add, mul, dependencies);
 
         long endTime = System.currentTimeMillis();
         System.out.println("\n*** Execution time: " + (endTime - startTime) + " ms");
     }
 
-    private static void solve(ar_input input) {
+    private static void solve(int da, int dm, int na, int nm, int nbrOps, int[] l, int[] a, int[] m, int[][] d) {
         /**
          * Import input data
          */
-        int del_add = input.del_add;
-        int del_mul = input.del_mul;
+        int del_add = da;
+        int del_mul = dm;
 
-        int number_add = input.number_add;
-        int number_mul = input.number_mul;
-        int n = input.n;
+        int number_add = na;
+        int number_mul = nm;
+        int n = nbrOps;
 
-        int[] last = input.last;
-        int[] add = input.add;
-        int[] mul = input.mul;
-        int[][] dependencies = input.dependencies;
+        int[] last = l;
+        int[] add = a;
+        int[] mul = m;
+        int[][] dependencies = d;
 
         /**
          * Initialize variables
