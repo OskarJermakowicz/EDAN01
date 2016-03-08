@@ -14,14 +14,13 @@ public class AutoRegressionFilter {
 
         // Configurations: 1-1, 1-2, 1-3, 2-2, 2-3, 2-4
         int number_add = 1;
-        int number_mul = 1;
+        int number_mul = 3;
         int n = 28;
 
         int[] last = {13,14,27,28};
         int[] add = {9,10,11,12,13,14,19,20,25,26,27,28};
         int[] mul = {1,2,3,4,5,6,7,8,15,16,17,18,21,22,23,24};
 
-        // For example index 9 of dependencies indicates that mul index 0 and 1 must be executed before 9 in add.
         int[][] dependencies = {
                 {},
                 {},
@@ -118,10 +117,10 @@ public class AutoRegressionFilter {
             length2[i] = new IntVar(store, "length2[" + i + "]", 1, 1);
 
             if (i < add.length) {
-                origin2[add[i] - 1] = new IntVar(store, "origin2[" + i + "]", 0, number_add - 1);
+                origin2[add[i] - 1] = new IntVar(store, "origin2[" + i + "]", 1, number_add);
                 length1[add[i] - 1] = new IntVar(store, "length1[" + i + "]", del_add, del_add);
             } else {
-                origin2[mul[i - add.length] - 1] = new IntVar(store, "origin2[" + (i - add.length) + "]", number_add, n - 1);
+                origin2[mul[i - add.length] - 1] = new IntVar(store, "origin2[" + (i - add.length) + "]", number_add + 1, (number_add + number_mul));
                 length1[mul[i - add.length] - 1] = new IntVar(store, "length1[" + (i - add.length) + "]", del_mul, del_mul);
             }
         }
@@ -155,7 +154,7 @@ public class AutoRegressionFilter {
             store.impose(new XplusYeqZ(origin1[i], length1[i], endTimes[i]));
 
             // Constraint: the max value of each element can not be greater than cost
-            store.impose(new Not(new XgtY(endTimes[i], cost)));
+            store.impose(new XlteqY(endTimes[i], cost));
         }
 
         // Constraint: determines how to schedule the operations
@@ -173,16 +172,37 @@ public class AutoRegressionFilter {
         System.out.println("Number of variables: " + store.size() +
                 "\nNumber of constraints: " + store.numberConstraints());
 
+        System.out.println(store);
+
         Search<IntVar> search = new DepthFirstSearch<>();
         SelectChoicePoint<IntVar> select = new SimpleSelect<>(endTimes, new SmallestDomain<>(), new IndomainMin<>());
-
-        System.out.println(store);
 
         if (search.labeling(store, select, cost)) {
             System.out.println("\n*** Found solution.");
             System.out.println("Solution cost is: " + cost.value());
         } else {
             System.out.println("\n*** No solution found.");
+        }
+
+        Search<IntVar> search2 = new DepthFirstSearch<>();
+        SelectChoicePoint<IntVar> select2 = new SimpleSelect<>(origin2, new SmallestDomain<>(), new IndomainMin<>());
+
+        if (search2.labeling(store, select2)) {
+            System.out.println("\n*** List below shows which operators performed which operations.");
+            for (int i = 1; i < number_add + 1; i++) {
+                System.out.print("[add" + i + "]: ");
+                for (int j = 0; j < n; j++) {
+                    if (i == (origin2[j].value())) System.out.print((j + 1) + " ");
+                }
+                System.out.println();
+            }
+            for (int i = number_add + 1; i < (number_add + number_mul) + 1; i++) {
+                System.out.print("[mul" + (i - number_add) + "]: ");
+                for (int j = 0; j < n; j++) {
+                    if (i == (origin2[j].value())) System.out.print((j + 1) + " ");
+                }
+                System.out.println();
+            }
         }
     }
 }
